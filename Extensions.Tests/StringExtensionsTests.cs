@@ -36,5 +36,10 @@ namespace Extensions.Tests
         [TestCase("SA123", 2)]
         public void ConvertToInt_IncorrectScale(string number, int scale)
             => Assert.Throws<ArgumentException>(() => number.ConvertToInt(scale));
+
+        [TestCase("", 2)]
+        [TestCase(null, 2)]
+        public void ConvertToInt_EmptyOrNull(string number, int scale)
+            => Assert.Throws<ArgumentNullException>(() => number.ConvertToInt(scale));
     }
 }
