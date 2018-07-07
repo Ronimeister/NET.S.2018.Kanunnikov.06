@@ -18,27 +18,27 @@ namespace Extensions
         /// </summary>
         /// <param name="number">string value that should be converted to Int.32</param>
         /// <param name="scale">Scale of notation.</param>
-        /// <exception cref="ArgumentException">Throws when scale gets incorrect value or scale has value "2" and number isn't binary.</exception>
+        /// <exception cref="ArgumentException">Throws when scale gets incorrect value or scale has value "2" and number isn't binary or number isn't positive.</exception>
         /// <exception cref="OverflowException">Throws when the number.Length value is bigger than 32(bits in Int32).</exception>
         /// <returns>Converted value.</returns>
         public static int ConvertToInt(this string number, int scale)
         {
-            if(number == null || number.Equals(""))
+            if (number == null || number.Equals(String.Empty))
             {
                 throw new ArgumentNullException(nameof(number) + " can't be equal to null or empry.");
             }
 
-            if(scale < 2 || scale > 16)
+            if (scale < 2 || scale > 16)
             {
                 throw new ArgumentException(nameof(scale) + " should be in range [2;16].");
             }
 
-            if(number.Length >= sizeof(int) * 8)
+            if (number.Length >= sizeof(int) * 8)
             {
                 throw new OverflowException("Length of " + nameof(number) + "for scale = " + scale + " should be less than 32!");
             }
 
-            if(!IsBinaryValue(number) && scale == 2)
+            if (!IsBinaryValue(number) && scale == 2)
             {
                 throw new ArgumentException(nameof(number) + " isn't represented in binary scale!");
             }
@@ -77,7 +77,7 @@ namespace Extensions
                 result += (CharToInt(chars[i]) * (int)Math.Pow(scale, i));
             }
 
-            return result;
+            return (result > 0) ? result : throw new ArgumentException(nameof(result) + " can't be < 0!");
         }
 
         /// <summary>

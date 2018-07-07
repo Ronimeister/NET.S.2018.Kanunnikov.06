@@ -18,6 +18,7 @@ namespace Extensions.Tests
         [TestCase("1ACB67", 16, ExpectedResult = 1756007)]
         [TestCase("764241", 8, ExpectedResult = 256161)]
         [TestCase("10", 5, ExpectedResult = 5)]
+        [TestCase("25", 10, ExpectedResult = 25)]
         public int ConvertToInt_IsCorrect(string number, int scale)
             => number.ConvertToInt(scale);
 
@@ -35,6 +36,10 @@ namespace Extensions.Tests
         [TestCase("1AeF101", 2)]
         [TestCase("SA123", 2)]
         public void ConvertToInt_IncorrectScale(string number, int scale)
+            => Assert.Throws<ArgumentException>(() => number.ConvertToInt(scale));
+
+        [TestCase("-25", 10)]
+        public void ConvertToInt_InvalidNumber(string number, int scale)
             => Assert.Throws<ArgumentException>(() => number.ConvertToInt(scale));
 
         [TestCase("", 2)]
