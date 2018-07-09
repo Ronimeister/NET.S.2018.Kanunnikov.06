@@ -1,22 +1,79 @@
 ﻿using System;
+using System.Configuration;
 
 namespace PolynomialLib
 {
     /// <summary>
     /// Class that provides functionality to work with polynomials.
     /// </summary>
-    public sealed class Polynomial
+    public sealed class Polynomial : ICloneable, IEquatable<Polynomial>
     {
         #region Constants
         private const int SummingSign = 1;
 
         private const int SubtractionSign = -1;
 
-        private const double ComparisonEpsilon = 10e-10;
+        private const double EpsilonByDefault = 10e-10;
+        #endregion
+
+        #region ICloneable methods
+        object ICloneable.Clone() => Clone();
+
+        public Polynomial Clone() => new Polynomial(_coefficients);
+        #endregion
+
+        #region IEquatable
+        public bool Equals(Polynomial other)
+        {
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            if (this is null || other is null)
+            {
+                return false;
+            }
+
+            if (Power != other.Power)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < other.Length; i++)
+            {
+                if (!IsEqualDoubles(other[i], _coefficients[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         #endregion
 
         #region Public API
         #region Constructor and properties
+        private double[] _coefficients;
+
+        private static readonly double ComparisonEpsilon;
+
+        public int Length
+        {
+            get
+            {
+                return _coefficients.Length;
+            }
+        }
+
+        public int Power
+        {
+            get
+            {
+                return Length - 1;
+            }
+        }
+
         /// <summary>
         /// Constructor for Polynomial class.
         /// </summary>
@@ -35,50 +92,54 @@ namespace PolynomialLib
                     throw new ArgumentException($"{nameof(coefficients)} can't be empty!");
                 }
 
-                Coefficients = new double[coefficients.Length];
-                coefficients.CopyTo(Coefficients, 0);
+                _coefficients = new double[coefficients.Length];
+                coefficients.CopyTo(_coefficients, 0);
             }
 
-        public int Length
+        static Polynomial()
         {
-            get
+            try
             {
-                return Coefficients.Length;
+                ComparisonEpsilon =  double.Parse(ConfigurationSettings.AppSettings["EpsilonValue"]);
+            }
+            catch (ArgumentNullException e)
+            {
+                ComparisonEpsilon = EpsilonByDefault;
             }
         }
-
-        public double[] Coefficients { get; } = { };
 
         /// <summary>
         /// Indexer of Polynomial class.
         /// </summary>
         /// <param name="indexer">Current index.</param>
-        /// <exception cref="IndexOutOfRangeException">Throws when <paramref name="indexer"/> is out of range.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Throws when <paramref name="indexer"/> is out of range.</exception>
         /// <returns>Current Polynomial value based on <paramref name="indexer"/> value.</returns>
         public double this[int indexer]
         {
             get
             {
-                if (indexer < 0 || indexer > Coefficients.Length)
+                if (indexer < 0 || indexer > Length)
                 {
-                    throw new IndexOutOfRangeException($"{nameof(indexer)} is out of range!");
+                    throw new ArgumentOutOfRangeException($"{nameof(indexer)} is out of range!");
                 }
 
-                return Coefficients[indexer];
+                return _coefficients[indexer];
             }
+
+            private set { }
         }
         #endregion
 
         #region Overloaded static operators
-        public static Polynomial operator +(Polynomial lhs, Polynomial rhs) => Sum(lhs, rhs);
-        public static Polynomial operator +(Polynomial lhs, double[] rhs) => Sum(lhs, rhs);
-        public static Polynomial operator +(double[] lhs, Polynomial rhs) => Sum(lhs, rhs);
-        public static Polynomial operator -(Polynomial lhs, Polynomial rhs) => Subtr(lhs, rhs);
-        public static Polynomial operator -(Polynomial lhs, double[] rhs) => Subtr(lhs, rhs);
-        public static Polynomial operator -(double[] lhs, Polynomial rhs) => Subtr(lhs, rhs);
-        public static Polynomial operator *(Polynomial lhs, Polynomial rhs) => Mult(lhs, rhs);
-        public static Polynomial operator *(Polynomial lhs, double[] rhs) => Mult(lhs, rhs);
-        public static Polynomial operator *(double[] lhs, Polynomial rhs) => Mult(lhs, rhs);
+        public static Polynomial operator +(Polynomial lhs, Polynomial rhs) => Add(lhs, rhs);
+        public static Polynomial operator +(Polynomial lhs, double rhs) => Add(lhs, rhs);
+        public static Polynomial operator +(double lhs, Polynomial rhs) => Add(lhs, rhs);
+        public static Polynomial operator -(Polynomial lhs, Polynomial rhs) => Subract(lhs, rhs);
+        public static Polynomial operator -(Polynomial lhs, double rhs) => Subract(lhs, rhs);
+        public static Polynomial operator -(double lhs, Polynomial rhs) => Subract(lhs, rhs);
+        public static Polynomial operator *(Polynomial lhs, Polynomial rhs) => Multiply(lhs, rhs);
+        public static Polynomial operator *(Polynomial lhs, double rhs) => Multiply(lhs, rhs);
+        public static Polynomial operator *(double lhs, Polynomial rhs) => Multiply(lhs, rhs);
         public static bool operator ==(Polynomial lhs, Polynomial rhs) => Equals(lhs, rhs);
         public static bool operator !=(Polynomial lhs, Polynomial rhs) => !Equals(lhs, rhs);
         #endregion
@@ -91,19 +152,33 @@ namespace PolynomialLib
         /// <returns>Bool value.</returns>
         public override bool Equals(object obj)
         {
-            Polynomial poly = obj as Polynomial;
-            CheckInput(poly);
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
 
-            if (Length != poly.Length)
+            if (this is null || obj is null)
+            {
+                return false;
+            }
+
+            if (GetType() != obj.GetType())
+            {
+                return false;
+            }
+
+            Polynomial poly = obj as Polynomial;
+
+            if (Power != poly.Power)
             {
                 return false;
             }
 
             for (int i = 0; i < poly.Length; i++)
             {
-                if (!poly.Coefficients[i].Equals(Coefficients[i]))
+                if (IsEqualDoubles(poly[i], _coefficients[i]))
                 {
-                    return false;
+                    return false; 
                 }
             }
 
@@ -138,18 +213,91 @@ namespace PolynomialLib
                 {
                     if (i != 1)
                     {
-                        result += Coefficients[i] + "x^" + i + " + ";
+                        result += _coefficients[i] + "x^" + i + " + ";
                     }
                     else
                     {
-                        result += Coefficients[i] + "x" + " + ";
+                        result += _coefficients[i] + "x" + " + ";
                     }
                 }
                 else
                 {
-                    result += Coefficients[i];
+                    result += _coefficients[i];
                 }
             }
+
+            return result;
+        }
+        #endregion
+
+        #region Public methods
+        public static Polynomial Add(Polynomial lhs, Polynomial rhs)
+        {
+            CheckInput(lhs, rhs);
+
+            return Sum(lhs, rhs);
+        }
+
+        public static Polynomial Add(Polynomial lhs, double rhs)
+        {
+            CheckInput(lhs);
+
+            return Sum(lhs, rhs);
+        }
+
+        public static Polynomial Add(double lhs, Polynomial rhs)
+        {
+            CheckInput(rhs);
+
+            return Sum(lhs, rhs);
+        }
+
+        public static Polynomial Subract(Polynomial lhs, Polynomial rhs)
+        {
+            CheckInput(lhs, rhs);
+
+            return Subtr(lhs, rhs);
+        }
+
+        public static Polynomial Subract(Polynomial lhs, double rhs)
+        {
+            CheckInput(lhs);
+
+            return Subtr(lhs, rhs);
+        }
+
+        public static Polynomial Subract(double lhs, Polynomial rhs)
+        {
+            CheckInput(rhs);
+
+            return Subtr(lhs, rhs);
+        }
+
+        public static Polynomial Multiply(Polynomial lhs, Polynomial rhs)
+        {
+            CheckInput(lhs, rhs);
+
+            return Mult(lhs, rhs);
+        }
+
+        public static Polynomial Multiply(Polynomial lhs, double rhs)
+        {
+            CheckInput(lhs);
+
+            return Mult(lhs, rhs);
+        }
+
+        public static Polynomial Multiply(double lhs, Polynomial rhs)
+        {
+            CheckInput(rhs);
+
+            return Mult(lhs, rhs);
+        }
+
+        public double[] ToArray()
+        {
+            double[] result = new double[Length];
+            Array.Copy(_coefficients, result, Length);
 
             return result;
         }
@@ -157,7 +305,7 @@ namespace PolynomialLib
         #endregion
 
         #region Private API
-        private bool IsEqualDouble(double a, double b) => Math.Abs(a - b) < ComparisonEpsilon;
+        private bool IsEqualDoubles(double a, double b) => Math.Abs(a - b) < ComparisonEpsilon;
 
         /// <summary>
         /// Check input Polynomial object for exceptions.
@@ -178,31 +326,12 @@ namespace PolynomialLib
             }
         }
 
-        /// <summary>
-        /// Overloaded version of <see cref="CheckInput(Polynomial)"/> method that takes two Polynomial objects.
-        /// </summary>
-        /// <param name="poly1">input Polynomial object</param>
-        /// <param name="poly2">input Polynomial object</param>
         private static void CheckInput(Polynomial poly1, Polynomial poly2)
         {
             CheckInput(poly1);
             CheckInput(poly2);
         }
-
-        /// <summary>
-        /// Overloaded version of <see cref="CheckInput(Polynomial)"/> method that takes two double[] arrays.
-        /// </summary>
-        /// <param name="lhs">input double[] array.</param>
-        /// <param name="rhs">input double[] array.</param>
-        /// <exception cref="ArgumentException">Throws when <paramref name="lhs"/> or <paramref name="rhs"/> <see cref="Length"/> is equal to 0.</exception>
-        private static void CheckInput(double[] lhs, double[] rhs)
-        {
-            if (lhs.Length == 0 || rhs.Length == 0)
-            {
-                throw new ArgumentException($"Coefficients array is empty!");
-            }
-        }
-
+        
         /// <summary>
         /// Create double[] array based on <paramref name="lhs"/> and <paramref name="rhs"/> based on their <see cref="Length"/> property.
         /// </summary>
@@ -224,6 +353,20 @@ namespace PolynomialLib
             return result;
         }
 
+        private static double[] GetSummingResult(double[] result, double lhs, double[] rhs, int sign)
+        {
+            rhs.CopyTo(result, 0);
+            result[0] += lhs * sign;
+            return result;
+        }
+
+        private static double[] GetSummingResult(double[] result, double[] lhs, double rhs, int sign)
+        {
+            lhs.CopyTo(result, 0);
+            result[0] += rhs * sign;
+            return result;
+        }
+
         private static double[] GetMultuplyResult(double[] result, double[] lhs, double[] rhs)
         {
             for (int i = 0; i < lhs.Length; ++i)
@@ -237,76 +380,89 @@ namespace PolynomialLib
             return result;
         }
 
+        private static double[] GetMultuplyResult(double[] result, double lhs, double[] rhs)
+        {
+            for(int i = 0; i < rhs.Length; i++)
+            {
+                result[i] += rhs[i] * lhs;
+            }
+
+            return result;
+        }
+
+        private static double[] GetMultuplyResult(double[] result, double[] lhs, double rhs)
+        {
+            for (int i = 0; i < lhs.Length; i++)
+            {
+                result[i] += lhs[i] * rhs;
+            }
+
+            return result;
+        }
+
         private static Polynomial Sum(Polynomial lhs, Polynomial rhs)
         {
-            CheckInput(lhs, rhs);
-            double[] result = MakePolyArr(lhs.Coefficients, rhs.Coefficients);
+            double[] result = MakePolyArr(lhs._coefficients, rhs._coefficients);
 
-            return new Polynomial(GetSummingResult(result, lhs.Coefficients, rhs.Coefficients, SummingSign));
+            return new Polynomial(GetSummingResult(result, lhs._coefficients, rhs._coefficients, SummingSign));
         }
 
-        private static Polynomial Sum(Polynomial lhs, double[] rhs)
+        private static Polynomial Sum(Polynomial lhs, double rhs)
         {
-            CheckInput(lhs.Coefficients, rhs);
-            double[] result = MakePolyArr(lhs.Coefficients, rhs);
+            CheckInput(lhs);
+            double[] result = new double[lhs.Length];
 
-            return new Polynomial(GetSummingResult(result, lhs.Coefficients, rhs, SummingSign));
+            return new Polynomial(GetSummingResult(result, lhs._coefficients, rhs, SummingSign));
         }
 
-        private static Polynomial Sum(double[] lhs, Polynomial rhs)
+        private static Polynomial Sum(double lhs, Polynomial rhs)
         {
-            CheckInput(lhs, rhs.Coefficients);
-            double[] result = MakePolyArr(lhs, rhs.Coefficients);
+            CheckInput(rhs);
+            double[] result = new double[rhs.Length];
 
-            return new Polynomial(GetSummingResult(result, lhs, rhs.Coefficients, SummingSign));
+            return new Polynomial(GetSummingResult(result, lhs, rhs._coefficients, SummingSign));
         }
 
         private static Polynomial Subtr(Polynomial lhs, Polynomial rhs)
         {
-            CheckInput(lhs, rhs);
-            double[] result = MakePolyArr(lhs.Coefficients, rhs.Coefficients);
+            double[] result = MakePolyArr(lhs._coefficients, rhs._coefficients);
 
-            return new Polynomial(GetSummingResult(result, lhs.Coefficients, rhs.Coefficients, SubtractionSign));
+            return new Polynomial(GetSummingResult(result, lhs._coefficients, rhs._coefficients, SubtractionSign));
         }
 
-        private static Polynomial Subtr(Polynomial lhs, double[] rhs)
+        private static Polynomial Subtr(Polynomial lhs, double rhs)
         {
-            CheckInput(lhs.Coefficients, rhs);
-            double[] result = MakePolyArr(lhs.Coefficients, rhs);
+            double[] result = new double[lhs.Length];
 
-            return new Polynomial(GetSummingResult(result, lhs.Coefficients, rhs, SubtractionSign));
+            return new Polynomial(GetSummingResult(result, lhs._coefficients, rhs, SubtractionSign));
         }
 
-        private static Polynomial Subtr(double[] lhs, Polynomial rhs)
+        private static Polynomial Subtr(double lhs, Polynomial rhs)
         {
-            CheckInput(lhs, rhs.Coefficients);
-            double[] result = MakePolyArr(lhs, rhs.Coefficients);
+            double[] result = new double[rhs.Length];
 
-            return new Polynomial(GetSummingResult(result, lhs, rhs.Coefficients, SubtractionSign));
+            return new Polynomial(GetSummingResult(result, lhs, rhs._coefficients, SubtractionSign));
         }
 
         private static Polynomial Mult(Polynomial lhs, Polynomial rhs)
         {
-            CheckInput(lhs, rhs);
             double[] result = new double[lhs.Length + rhs.Length - 1];
 
-            return new Polynomial(GetMultuplyResult(result, lhs.Coefficients, rhs.Coefficients));
+            return new Polynomial(GetMultuplyResult(result, lhs._coefficients, rhs._coefficients));
         }
 
-        private static Polynomial Mult(Polynomial lhs, double[] rhs)
+        private static Polynomial Mult(double lhs, Polynomial rhs)
         {
-            CheckInput(lhs.Coefficients, rhs);
-            double[] result = new double[lhs.Length + rhs.Length - 1];
+            double[] result = new double[rhs.Length];
 
-            return new Polynomial(GetMultuplyResult(result, lhs.Coefficients, rhs));
+            return new Polynomial(GetMultuplyResult(result, lhs, rhs._coefficients));
         }
 
-        private static Polynomial Mult(double[] lhs, Polynomial rhs)
+        private static Polynomial Mult(Polynomial lhs, double rhs)
         {
-            CheckInput(lhs, rhs.Coefficients);
-            double[] result = new double[lhs.Length + rhs.Length - 1];
+            double[] result = new double[lhs.Length];
 
-            return new Polynomial(GetMultuplyResult(result, lhs, rhs.Coefficients));
+            return new Polynomial(GetMultuplyResult(result, lhs._coefficients, rhs));
         }
         #endregion
     }
