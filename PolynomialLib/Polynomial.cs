@@ -144,7 +144,15 @@ namespace PolynomialLib
                 return _coefficients[indexer];
             }
 
-            private set { }
+            private set
+            {
+                if (indexer < 0 || indexer > Length)
+                {
+                    throw new ArgumentOutOfRangeException($"{nameof(indexer)} is out of range!");
+                }
+
+                _coefficients[indexer] = value; 
+            }
         }
         #endregion
 
@@ -183,24 +191,9 @@ namespace PolynomialLib
             if (GetType() != obj.GetType())
             {
                 return false;
-            }
+            }            
 
-            Polynomial poly = obj as Polynomial;
-
-            if (Power != poly.Power)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < poly.Length; i++)
-            {
-                if (IsEqualDoubles(poly[i], _coefficients[i]))
-                {
-                    return false; 
-                }
-            }
-
-            return true;
+            return Equals((Polynomial)obj);
         }
 
         /// <summary>

@@ -83,7 +83,7 @@ namespace PolynomialLib.Tests
             bool actual = (poly1 == poly2);
             Assert.AreEqual(expected, actual);
         }
-
+        
         [TestCase]
         public void Polynomial_NotEqualOperator_IsCorrect()
         {
@@ -132,6 +132,17 @@ namespace PolynomialLib.Tests
 
             bool result = lhs.Equals(lhs);
             Assert.AreEqual(expected, result);
+        }
+        
+        [TestCase]
+        public void Polynomial_EqualsObject_IsCorrect()
+        {
+            Polynomial poly1 = new Polynomial(1, 2);
+            object poly2 = new Polynomial(1, 2);
+
+            bool expected = true;
+            bool actual = poly1.Equals(poly2);
+            Assert.AreEqual(expected, actual);
         }
 
         [TestCase]
