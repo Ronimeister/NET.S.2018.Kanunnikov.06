@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Text;
 
 namespace PolynomialLib
 {
@@ -120,7 +121,7 @@ namespace PolynomialLib
             {
                 ComparisonEpsilon =  double.Parse(ConfigurationSettings.AppSettings["EpsilonValue"]);
             }
-            catch (ArgumentNullException e)
+            catch (Exception e)
             {
                 ComparisonEpsilon = EpsilonByDefault;
             }
@@ -202,7 +203,12 @@ namespace PolynomialLib
         /// <returns>Int value representing hash code.</returns>
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            int result = 0;
+            foreach(double item in _coefficients)
+            {
+                result += ShiftAndWrap(item.GetHashCode(), 2);
+            }
+            return result;
         }
 
         /// <summary>
@@ -217,27 +223,38 @@ namespace PolynomialLib
                 throw new ArgumentNullException($"Object can't be equal to null!");
             }
 
-            string result = string.Empty;
+            StringBuilder result = new StringBuilder();
+
             for(int i = Length - 1; i >= 0; i--)
             {
-                if (i != 0)
+                if (_coefficients[i] != 0)
                 {
-                    if (i != 1)
+                    if (i == 0)
                     {
-                        result += _coefficients[i] + "x^" + i + " + ";
+                        result.Append(_coefficients[i]);
                     }
                     else
                     {
-                        result += _coefficients[i] + "x" + " + ";
+                        if (i != 1)
+                        {
+                            result.Append(_coefficients[i] + "x^" + i + " + ");
+                        }
+                        else
+                        {
+                            if (_coefficients[i - 1] != 0 && i - 1 != -1)
+                            {
+                                result.Append(_coefficients[i] + "x" + " + ");
+                            }
+                            else
+                            {
+                                result.Append(_coefficients[i] + "x");
+                            }
+                        } 
                     }
-                }
-                else
-                {
-                    result += _coefficients[i];
                 }
             }
 
-            return result;
+            return result.ToString();
         }
         #endregion
 
@@ -392,6 +409,16 @@ namespace PolynomialLib
         #endregion
 
         #region Private API
+        private int ShiftAndWrap(int value, int positions)
+        {
+            positions = positions & 0x1F;
+            
+            uint number = BitConverter.ToUInt32(BitConverter.GetBytes(value), 0);
+            uint wrapped = number >> (32 - positions);
+
+            return BitConverter.ToInt32(BitConverter.GetBytes((number << positions) | wrapped), 0);
+        }
+
         private bool IsEqualDoubles(double a, double b) => Math.Abs(a - b) < ComparisonEpsilon;
 
         private static void CheckInput(Polynomial poly)
