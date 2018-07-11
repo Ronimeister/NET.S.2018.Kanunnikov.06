@@ -511,7 +511,6 @@ namespace PolynomialLib
 
         private static Polynomial Sum(Polynomial lhs, double rhs)
         {
-            CheckInput(lhs);
             double[] result = new double[lhs.Length];
 
             return new Polynomial(GetSummingResult(result, lhs._coefficients, rhs, SummingSign));
@@ -519,7 +518,6 @@ namespace PolynomialLib
 
         private static Polynomial Sum(double lhs, Polynomial rhs)
         {
-            CheckInput(rhs);
             double[] result = new double[rhs.Length];
 
             return new Polynomial(GetSummingResult(result, lhs, rhs._coefficients, SummingSign));
