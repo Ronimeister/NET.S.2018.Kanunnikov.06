@@ -72,11 +72,14 @@ namespace Extensions
         {
             int result = 0;
 
-            for (int i = 0; i < chars.Length; i++)
+            checked
             {
-                result += (CharToInt(chars[i]) * (int)Math.Pow(scale, i));
+                for (int i = 0; i < chars.Length; i++)
+                {
+                    result += (CharToInt(chars[i]) * (int)Math.Pow(scale, i));
+                }
             }
-
+            
             return (result > 0) ? result : throw new ArgumentException(nameof(result) + " can't be < 0!");
         }
 
